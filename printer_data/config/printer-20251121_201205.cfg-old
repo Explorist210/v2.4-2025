@@ -1,0 +1,583 @@
+#[include accelerometer.cfg]
+#[include EBBCan.cfg]
+[include mmu/base/*.cfg]
+[include mmu/optional/client_macros.cfg]
+[include KAMP_Settings.cfg]
+[include K-ShakeTune/*.cfg]
+[include print_macros.cfg]
+[include knomi.cfg]
+[include config_backup.cfg]
+[include mainsail.cfg]
+#[include TMC_Autotune.cfg]
+[include fan_tach_monitor.cfg]
+#[include mmu/addons/blobifier.cfg]
+#[include mmu/addons/mmu_erec_cutter.cfg]
+[include hotkey.cfg]
+[include bed_fans.cfg]
+[include nitehawk.cfg]
+# printer.cfg
+#[include jabberwocky_cut.cfg]
+
+
+
+#[include blobifier.cfg]
+#[include xiao.cfg]
+##--------------------------------------------------------------------
+
+## Voron Design VORON2.4 300mm BigTreeTech OctoPus V1 TMC2209 UART config
+
+[resonance_tester]
+accel_chip: beacon
+probe_points: 150, 150, 20
+
+##--------------------------------------------------------------------
+
+[mcu]
+##	[X in MOTOR0] - B Motor
+##	[Y in MOTOR1] - A Motor
+##	[E in MOTOR6] - Extruder
+##	Obtain definition by "ls -l /dev/serial/by-id/" then unplug to verify
+##--------------------------------------------------------------------
+serial: /dev/serial/by-id/usb-Klipper_stm32f446xx_33001E000650534E4E313120-if00
+#restart_method: command
+
+##--------------------------------------------------------------------
+
+[exclude_object]
+
+
+##--------------------------------------------------------------------
+
+
+[input_shaper]
+shaper_freq_x: 44.6
+shaper_type_x: mzv
+shaper_freq_y: 40.6
+shaper_type_y: mzv
+damping_ratio_x:.078
+damping_ratio_y:.066
+
+##--------------------------------------------------------------------
+
+[printer]
+kinematics: corexy
+max_velocity: 600  
+max_accel: 8000    			#Max 4000
+max_z_velocity: 35 			#Max 15 for 12V TMC Drivers, can increase for 24V
+max_z_accel: 350
+square_corner_velocity: 5.0
+
+
+[beacon]
+serial:  /dev/serial/by-id/usb-Beacon_Beacon_RevH_D3B0017B5157355957202020FF122D29-if00
+x_offset: 0 # update with offset from nozzle on your machine
+y_offset: 27.3 # update with offset from nozzle on your machine
+mesh_main_direction: x
+mesh_runs: 1
+contact_max_hotend_temperature: 180 # increase to probe at print temps
+
+home_xy_position: 150, 150 # update with your safe position
+home_z_hop: 5
+home_z_hop_speed: 30
+home_xy_move_speed: 300
+home_method: contact # use proximity for induction homing
+home_method_when_homed: proximity # after initial calibration use induction
+home_autocalibrate: unhomed # contact will calibrate beacon on first home
+
+
+[shaketune]
+# result_folder: ~/printer_data/config/ShakeTune_results
+#    The folder where the results will be stored. It will be created if it doesn't exist.
+# number_of_results_to_keep: 3
+#    The number of results to keep in the result_folder. The oldest results will
+#    be automatically deleted after each runs.
+# keep_raw_csv: False
+#    If True, the raw CSV files will be kept in the result_folder alongside the
+#    PNG graphs. If False, they will be deleted and only the graphs will be kept.
+# show_macros_in_webui: True
+#    Mainsail and Fluidd doesn't create buttons for "system" macros that are not in the
+#    printer.cfg file. If you want to see the macros in the webui, set this to True.
+# timeout: 300
+#    The maximum time in seconds to let Shake&Tune process the CSV files and generate the graphs.
+
+
+######################################################################
+# 	X/Y Stepper Settings
+#####################################################################
+
+## X Stepper on MOTOR0(B Motor)
+[stepper_x]
+step_pin: PF13
+dir_pin: !PF12
+enable_pin: !PF14
+rotation_distance: 40
+microsteps: 32
+full_steps_per_rotation:400  #set to 400 for 0.9 degree stepper
+endstop_pin: PG6
+#PG6
+position_min: 0
+
+##--------------------------------------------------------------------
+
+position_endstop: 299
+position_max: 299
+
+##--------------------------------------------------------------------
+
+homing_speed: 60   #Max 100
+homing_retract_dist: 5
+homing_positive_dir: true
+
+##	Make sure to update below for your relevant driver (2208 or 2209)
+[tmc2209 stepper_x]
+uart_pin: PC4
+interpolate: False
+run_current: 1.0
+#hold_current: 0.70
+sense_resistor: 0.110
+#stealthchop_threshold: 0
+
+## Y Stepper on MOTOR1 (A Motor)
+[stepper_y]
+step_pin: PG0
+dir_pin: PG1
+enable_pin: !PF15
+rotation_distance: 40
+microsteps: 32
+full_steps_per_rotation:400  #set to 400 for 0.9 degree stepper
+endstop_pin: PG9
+position_min: 0
+
+##--------------------------------------------------------------------
+
+position_endstop: 308
+position_max: 308
+
+##--------------------------------------------------------------------
+
+homing_speed: 60  #Max 100
+homing_retract_dist: 2
+homing_positive_dir: true
+
+##	Make sure to update below for your relevant driver (2208 or 2209)
+[tmc2209 stepper_y]
+uart_pin: PD11
+interpolate: False
+run_current: 1.0
+#hold_current: 0.70
+sense_resistor: 0.110
+#stealthchop_threshold: 0
+
+#####################################################################
+# 	Z Stepper Settings
+#####################################################################
+
+## Z0 Stepper - Front Left on MOTOR2_1
+[stepper_z]
+step_pin: PF11
+dir_pin: PG3
+enable_pin: !PG5
+rotation_distance: 40
+gear_ratio: 80:16
+microsteps: 16
+#endstop_pin: PG10
+endstop_pin: probe:z_virtual_endstop # use beacon as virtual endstop
+homing_retract_dist: 0 # beacon needs this to be set to 0
+position_min: -1
+position_max: 300
+
+##--------------------------------------------------------------------
+
+#[safe_z_home]
+#home_xy_position: 150, 150 
+#    where the Z homing should be
+#   performed. This parameter must be provided.
+#speed: 150.0
+#   Speed at which the toolhead is moved to the safe Z home
+#   coordinate. The default is 50 mm/s
+#z_hop: 5
+#   Distance (in mm) to lift the Z axis prior to homing. This is
+#   applied to any homing command, even if it doesn't home the Z axis.
+#   If the Z axis is already homed and the current Z position is less
+#   than z_hop, then this will lift the head to a height of z_hop. If
+#   the Z axis is not already homed the head is lifted by z_hop.
+#   The default is to not implement Z hop.
+#z_hop_speed: 25.0
+#   Speed (in mm/s) at which the Z axis is lifted prior to homing. The
+#   default is 15 mm/s.
+#move_to_previous: False
+#   When set to True, the X and Y axes are reset to their previous
+#   positions after Z axis homing. The default is False.
+
+##--------------------------------------------------------------------
+
+[tmc2209 stepper_z]
+uart_pin: PC6
+interpolate: True
+run_current: 1.0
+hold_current: 0.50
+sense_resistor: 0.110
+#stealthchop_threshold: 0
+
+##	Z1 Stepper - Rear Left on MOTOR3
+[stepper_z1]
+step_pin: PG4
+dir_pin: PC1
+enable_pin: !PA0
+rotation_distance: 40
+gear_ratio: 80:16
+microsteps: 16
+
+##	Make sure to update below for your relevant driver (2208 or 2209)
+[tmc2209 stepper_z1]
+uart_pin: PC7
+interpolate: True
+run_current: 1.0
+hold_current: 0.50
+sense_resistor: 0.110
+#stealthchop_threshold: 0
+
+##	Z2 Stepper - Rear Right on MOTOR4
+[stepper_z2]
+step_pin: PF9
+dir_pin: !PF10
+enable_pin: !PG2
+rotation_distance: 40
+gear_ratio: 80:16
+microsteps: 16
+
+##	Make sure to update below for your relevant driver (2208 or 2209)
+[tmc2209 stepper_z2]
+uart_pin: PF2
+interpolate: True
+run_current: 1.0
+hold_current: 0.50
+sense_resistor: 0.110
+#stealthchop_threshold: 0
+
+##	Z3 Stepper - Front Right on MOTOR5
+[stepper_z3]
+step_pin: PC13
+dir_pin: PF0
+enable_pin: !PF1
+rotation_distance: 40
+gear_ratio: 80:16
+microsteps: 16
+
+##	Make sure to update below for your relevant driver (2208 or 2209)
+[tmc2209 stepper_z3]
+uart_pin: PE4
+interpolate: True
+run_current: 1.0
+hold_current: 0.50
+sense_resistor: 0.110
+#stealthchop_threshold: 0
+
+
+#####################################################################
+# 	Bed Heater
+#####################################################################
+
+[heater_bed]
+##	SSR Pin - BED_OUT
+heater_pin: PA1
+sensor_type: NTC 100K MGB18-104F39050L32
+sensor_pin: PF3
+##	Adjust Max Power so your heater doesn't warp your bed
+max_power: 0.6
+min_temp: 0
+max_temp: 120
+#control: pid
+#pid_kp: 58.437
+#pid_ki: 2.347
+#pid_kd: 363.745
+
+
+[temperature_sensor RaspberryPi]
+sensor_type: temperature_host
+
+#[temperature_sensor mmu_mcu_temp]
+#sensor_type: temperature_mcu
+#sensor_mcu: mmu
+#min_temp: 0
+#max_temp: 100
+
+#[temperature_sensor EBBCan_mcu_temp]
+#sensor_type: temperature_mcu
+#sensor_mcu: EBBCan
+#min_temp: 0
+#max_temp: 100
+
+[temperature_sensor octopus_mcu_temp]
+sensor_type: temperature_mcu
+sensor_mcu: mcu
+min_temp: 0
+max_temp: 100
+
+#[temperature_sensor MMU_mcu_temp]
+#sensor_type: temperature_mcu
+#sensor_mcu: mmu
+#min_temp: 0
+#max_temp: 100
+
+
+#####################################################################
+# 	Fan Control
+#####################################################################
+
+
+#[multi_pin bed_fans]
+#pins: PA8, PE5
+#   A comma separated list of pins associated with this alias. This
+#   parameter must be provided.
+#[heater_fan bed_fans]
+#pin=multi_pin:bed_fans
+#heater: heater_bed
+#   Name of the config section defining the heater that this fan is
+#   associated with. If a comma separated list of heater names is
+#   provided here, then the fan will be enabled when any of the given
+#   heaters are enabled. The default is "extruder".
+#heater_temp: 50.0
+#   A temperature (in Celsius) that the heater must drop below before
+#   the fan is disabled. The default is 50 Celsius.
+#fan_speed: 1.0
+#   The fan speed (expressed as a value from 0.0 to 1.0) that the fan
+#   will be set to when its associated heater is enabled. The default
+#   is 1.0
+
+[multi_pin my_fan]
+pins: PD14, PD15
+
+[heater_fan heater_bed]
+
+##	Controller fan - CNC_FAN2
+pin=multi_pin:my_fan
+max_power: 1.0
+kick_start_time: 1.0
+heater: heater_bed
+heater_temp: 60
+fan_speed: 0.65
+
+[heater_fan nevermore]
+##	Exhaust fan - CNC_FAN3
+pin: PD13
+max_power: 1
+shutdown_speed: 0.0
+kick_start_time: 1.0
+heater: heater_bed
+heater_temp: 60
+fan_speed: 0.9
+
+#[temperature_sensor octopus_steppers]
+#sensor_type: Generic 3950
+#sensor_pin: PF5
+#control: watermark
+#min_temp: 0
+#max_temp: 80
+#target_temp: 30
+
+[neopixel progress]
+pin: PA15
+chain_count:28
+color_order: GRB
+initial_RED: 0.0
+initial_GREEN: 0.0
+initial_BLUE: 0.0
+
+[neopixel chamber]
+pin: PB0
+#   The pin connected to the neopixel. This parameter must be
+#   provided.
+chain_count:24
+#   The number of Neopixel chips that are "daisy chained" to the
+#   provided pin. The default is 1 (which indicates only a single
+#   Neopixel is connected to the pin).
+color_order: GRB
+#   Set the pixel order required by the LED hardware. Options are GRB,
+#   RGB, GRBW, or RGBW. The default is GRB.
+initial_RED: 0.0
+initial_GREEN: 0.0
+initial_BLUE: 0.0
+#initial_WHITE: 0.0
+#   Sets the initial LED color of the Neopixel. Each value should be
+#   between 0.0 and 1.0. The WHITE option is only available on RGBW
+#   LEDs. The default for each color is 0.
+
+##--------------------------------------------------------------------
+
+#[led_effect heater]
+#autostart:              true
+#frame_rate:             24
+#leds:
+#    neopixel:my_neopixel
+#heater:                 heater_bed
+#layers:
+#   layer_name  Effect Rate   Cutoff   Blending   Color
+#    heater      20            1        top        (0,0,1),(1,1,0),(0,0,1)
+
+[led_effect fire]
+autostart:              true
+frame_rate:             24
+leds:
+    neopixel:chamber (9-16)
+heater:                 heater_bed
+layers:
+#   layer_name  Effect Rate   Cutoff   Blending   Color
+    heaterfire      20          0        top       (0.0, 0.0, 0.0),(1.0, 0.0, 0.0),(1.0, 1.0, 0.0),(1.0, 1.0, 1.0)
+
+[led_effect progress_bar]
+leds:
+    neopixel:progress
+autostart:                          true
+frame_rate:                         24
+layers:
+    progress  -1  0 add         (0.1, 0.0, 0.0),(0.0, 0.1, 0.0)
+    #static     0  0 top            (0.1, 0.0, 0.0),(0.0, 0.1, 0.0)
+     
+#####################################################################
+# 	Homing and Gantry Adjustment Routines
+#####################################################################
+
+#[bed_mesh]
+#speed: 500
+#horizontal_move_z: 15
+#mesh_min: 40,40
+#mesh_max: 260,260
+#probe_count: 5,5
+#fade_start: 1.0
+#fade_end: 10.0
+#mesh_pps: 2,2
+#algorithm: bicubic
+#bicubic_tension: 0.2
+#relative_reference_index: 12
+#move_check_distance: 5
+#split_delta_z: .025
+
+
+
+[bed_mesh]
+speed: 450
+horizontal_move_z: 2
+mesh_min: 40,40
+mesh_max: 260,260
+algorithm: bicubic
+bicubic_tension: 0.1
+probe_count: 20,20
+mesh_pps: 2,2
+#relative_reference_index: 24   # (5,3)=7 (3,3)=4 (5,5)=12 (7,7)=24 (7,5)=17 (9,9)=40
+move_check_distance: 5.0
+split_delta_z: .025
+fade_start: 0.6
+fade_end: 10
+fade_target: 0
+ 
+[idle_timeout]
+timeout: 2500
+
+[quad_gantry_level]
+##	Use QUAD_GANTRY_LEVEL to level a gantry.
+gantry_corners:
+	0,0
+	300,300
+##	Probe points
+points:
+	50,25
+	50,250
+	250,250
+	250,25
+
+speed: 450
+horizontal_move_z: 5
+retries: 8
+retry_tolerance: 0.05
+max_adjust: 10
+
+########################################
+# EXP1 / EXP2 (display) pins
+########################################
+
+[board_pins]
+aliases:
+    # EXP1 header
+    EXP1_1=PE8, EXP1_2=PE7,
+    EXP1_3=PE9, EXP1_4=PE10,
+    EXP1_5=PE12, EXP1_6=PE13,    # Slot in the socket on this side
+    EXP1_7=PE14, EXP1_8=PE15,
+    EXP1_9=<GND>, EXP1_10=<5V>,
+
+    # EXP2 header
+    EXP2_1=PA6, EXP2_2=PA5,
+    EXP2_3=PB1, EXP2_4=PA4,
+    EXP2_5=PB2, EXP2_6=PA7,      # Slot in the socket on this side
+    EXP2_7=PC15, EXP2_8=<RST>,
+    EXP2_9=<GND>, EXP2_10=<5V>
+
+#[include fluidd.cfg]
+#[include Stealthburner_led.cfg]
+#[include nozzle_scrub.cfg]
+#[include palette 2.cfg]
+#[include stealthburner_led_effects_3_leds.cfg]
+
+##--------------------------------------------------------------------
+
+    ## 	Thermistor Types
+##   "EPCOS 100K B57560G104F"
+##   "ATC Semitec 104GT-2"
+##   "NTC 100K beta 3950"
+##   "Honeywell 100K 135-104LAG-J01"
+##   "NTC 100K MGB18-104F39050L32" (Keenovo Heater Pad)
+##   "AD595"
+##   "PT100 INA826"
+
+#*# <---------------------- SAVE_CONFIG ---------------------->
+#*# DO NOT EDIT THIS BLOCK OR BELOW. The contents are auto-generated.
+#*#
+#*# [heater_bed]
+#*# control = pid
+#*# pid_kp = 41.740
+#*# pid_ki = 1.521
+#*# pid_kd = 286.442
+#*#
+#*# [bed_mesh default]
+#*# version = 1
+#*# points =
+#*# 	  0.021033, 0.014412, 0.013549, 0.020519, 0.025645, 0.021410, 0.019281, 0.023218, 0.029660, 0.036707
+#*# 	  0.011428, 0.007067, 0.008663, 0.016408, 0.020516, 0.017348, 0.017032, 0.018748, 0.023617, 0.033290
+#*# 	  0.005934, 0.001128, 0.001576, 0.008676, 0.014842, 0.012708, 0.014264, 0.014724, 0.019169, 0.026350
+#*# 	  -0.006874, -0.012393, -0.012119, -0.002143, 0.003786, 0.003385, 0.003626, 0.006642, 0.010866, 0.020131
+#*# 	  -0.008663, -0.014968, -0.015838, -0.005268, 0.001285, 0.000665, -0.000832, 0.003158, 0.010113, 0.019704
+#*# tension = 0.1
+#*# min_x = 111.51
+#*# algo = bicubic
+#*# y_count = 5
+#*# mesh_y_pps = 2
+#*# min_y = 112.209
+#*# x_count = 10
+#*# max_y = 156.376
+#*# mesh_x_pps = 2
+#*# max_x = 212.991
+#*#
+#*# [probe]
+#*# z_offset = -0.630
+#*#
+#*# [extruder]
+#*# control = pid
+#*# pid_kp = 39.234
+#*# pid_ki = 13.078
+#*# pid_kd = 29.426
+#*#
+#*# [beacon model default]
+#*# model_coef = 1.612757794450655,
+#*# 	  2.007804258668676,
+#*# 	  0.7821385172683373,
+#*# 	  0.06341108695337534,
+#*# 	  0.12208490753651945,
+#*# 	  0.7152238164724295,
+#*# 	  0.035047023482330984,
+#*# 	  -0.6852099349973516,
+#*# 	  0.04834969556165973,
+#*# 	  0.3013311594275723
+#*# model_domain = 1.873392537423503e-07,1.9335648026956286e-07
+#*# model_range = 0.200000,5.000000
+#*# model_temp = 49.515473
+#*# model_offset = 0.00000
